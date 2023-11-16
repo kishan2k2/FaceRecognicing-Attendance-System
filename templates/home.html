@@ -82,6 +82,17 @@
                     <td><b>ID</b></td>
                     <td><b>Time</b></td>
                 </tr>
+                {% if l %}
+
+                {% for i in range(l) %}
+                <tr>
+                    <td>{{ i+1 }}</td>
+                    <td>{{ names[i] }}</td>
+                    <td>{{ rolls[i] }}</td>
+                    <td>{{ times[i] }}</td>
+                </tr>
+                {% endfor %}
+                {% endif %}
             </table>
 
         </div>
@@ -105,7 +116,7 @@
                     New User
                 </button>
                 <br>
-                <h5 style="padding: 25px;"><i>Total Users in Database:</i></h5>
+                <h5 style="padding: 25px;"><i>Total Users in Database: {{totalreg}}</i></h5>
             </form>
         </div>
 
