@@ -38,7 +38,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="M:\Third Year\Projects\Flask\attendance system\venv"
+VIRTUAL_ENV="M:\Third Year\Projects\Flask\attendance system\FaceRecognicing-Attendance-System\venv"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"
