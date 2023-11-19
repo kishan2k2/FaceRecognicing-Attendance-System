@@ -1,1 +1,7 @@
 To create virtual enviorment-: virtualenv <name>; <name>/Scripts/activate
+
+
+How many images of a user should we require cause as of now it's only capturing one of the image but according to code it will take more.
+
+Next to do-:
+    Handle the dynamic HTML loading.
