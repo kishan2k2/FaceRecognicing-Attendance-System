@@ -1,10 +1,27 @@
 from flask import Flask, render_template, request
 import os
 import cv2
+import pandas as pd
+from datetime import datetime
+from datetime import date
 app = Flask(__name__)
 
 nimgs = 10
 face_detector = cv2.CascadeClassifier('static\haarcascade_frontalface_default.xml')
+
+datetoday = date.today().strftime("%m_%d_%y")
+datetoday2 = date.today().strftime("%d-%B-%Y")
+
+if not os.path.isdir('Attendance'):
+    os.makedirs('Attendance')
+if not os.path.isdir('static'):
+    os.makedirs('static')
+if not os.path.isdir('static/faces'):
+    os.makedirs('static/faces')
+if f'Attendance-{datetoday}.csv' not in os.listdir('Attendance'):
+    with open(f'Attendance/Attendance-{datetoday}.csv', 'w') as f:
+        f.write('Name,Roll,Time')
+
 
 def extract_faces(img):
     try:
@@ -13,14 +30,34 @@ def extract_faces(img):
         return face_points
     except:
         return []
+def extract_attendance():
+    df = pd.read_csv(f'Attendance/Attendance-{datetoday}.csv')
+    names = df['Name']
+    rolls = df['Roll']
+    times = df['Time']
+    l = len(df)
+    return names, rolls, times, l
+
+def add_attendance(name):
+    username = name.split('_')[0]
+    userid = name.split('_')[1]
+    current_time = datetime.now().strftime("%H:%M:%S")
+
+    df = pd.read_csv(f'Attendance/Attendance-{datetoday}.csv')
+    if int(userid) not in list(df['Roll']):
+        with open(f'Attendance/Attendance-{datetoday}.csv', 'a') as f:
+            f.write(f'\n{username},{userid},{current_time}')
+
+def totalreg():
+    return len(os.listdir('static/faces'))
 
 ####Routing Functions####\
 
 
 @app.route('/')
 def home():
-    
-    return render_template('home.html', mess = "There is no model Please add one")
+    names, rolls, times, l = extract_attendance()
+    return render_template('home.html', names=names, rolls=rolls, times=times, l=l, totalreg=totalreg(), mess = "There is no model Please add one")
 
 
 @app.route("/start", methods=['GET'])
@@ -29,6 +66,7 @@ def start():
 
 @app.route("/add", methods=['GET', 'POST'])
 def add():
+    names, rolls, times, l = extract_attendance()
     newusername = request.form['newusername']
     newuserid = request.form['newuserid']
     userimagefolder = 'static/faces/' + newusername + '_' + str(newuserid)
@@ -39,6 +77,8 @@ def add():
     while 1:
         _, frame = cap.read()
         faces = extract_faces(frame)
+        cv2.imshow('Photo selected', frame)
+        cv2.waitKey(10000)
         for (x, y, w, h) in faces:
             cv2.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 20), 2)
             cv2.putText(frame, f'Images Captured: {i}/{nimgs}', (30, 30),
@@ -58,7 +98,7 @@ def add():
         print('Training Model')
         # train_model()
         # names, rolls, times, l = extract_attendance()
-        return render_template('home.html')
+        return render_template('home.html', names=names, rolls=rolls, times=times, l=l, totalreg=totalreg(), datetoday2=datetoday2)
 
     return "This is add page"
 
