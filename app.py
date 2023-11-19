@@ -4,6 +4,9 @@ import cv2
 import pandas as pd
 from datetime import datetime
 from datetime import date
+import numpy as np
+from sklearn.neighbors import KNeighborsClassifier
+import joblib
 app = Flask(__name__)
 
 nimgs = 10
@@ -51,6 +54,40 @@ def add_attendance(name):
 def totalreg():
     return len(os.listdir('static/faces'))
 
+
+def train_model():
+    faces = []
+    labels = []
+    userlist = os.listdir('static/faces')
+    knn = KNeighborsClassifier(n_neighbors=1)
+    for user in userlist:
+        for imgname in os.listdir(f'static/faces/{user}'):
+            img = cv2.imread(f'static/faces/{user}/{imgname}')
+            resized_face = cv2.resize(img, (50, 50))
+            resized_face = resized_face.reshape(-1)  # Flatten the image array
+            faces.append(resized_face)
+            labels.append(user) 
+    # faces = np.array(faces)
+    # print(faces)
+    # vol_shape = faces.shape[:-1]
+    # print(vol_shape)
+    # n_voxels = np.prod(vol_shape)
+    # print(n_voxels)
+    # faces = faces.reshape(n_voxels, faces.shape[-1])
+    # print(faces.shape)
+    # Convert lists to NumPy arrays
+    faces = np.array(faces)
+    labels = np.array(labels)
+
+# Fit the KNN classifier
+    knn.fit(faces, labels)
+    joblib.dump(knn, 'static/face_recognition_model.pkl')
+
+def identify_face(facearray):
+    model = joblib.load('static/face_recognition_model.pkl')
+    return model.predict(facearray)
+
+
 ####Routing Functions####\
 
 
@@ -62,8 +99,63 @@ def home():
 
 @app.route("/start", methods=['GET'])
 def start():
-    return "This is start page"
+    names, rolls, times, l = extract_attendance()
 
+    if 'face_recognition_model.pkl' not in os.listdir('static'):
+        return render_template('home.html', names=names, rolls=rolls, times=times, l=l, totalreg=totalreg(), mess="There is no model Please add one")
+
+    cap = cv2.VideoCapture(0)
+
+    while True:
+        ret, frame = cap.read()
+
+        if len(extract_faces(frame)) > 0:
+            (x, y, w, h) = extract_faces(frame)[0]
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (86, 32, 251), 1)
+            cv2.rectangle(frame, (x, y), (x + w, y - 40), (86, 32, 251), -1)
+            face = cv2.resize(frame[y:y + h, x:x + w], (50, 50))
+            identified_person = identify_face(face.reshape(1, -1))[0]
+            add_attendance(identified_person)
+            cv2.putText(frame, f'{identified_person}', (x + 5, y - 5),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+
+        cv2.imshow('Attendance', frame)
+
+        names, rolls, times, l = extract_attendance()
+        if cv2.waitKey(1) == 27:
+            return render_template('home.html', names=names, rolls=rolls, times=times, l=l, totalreg=totalreg(), datetoday2=datetoday2)
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+    names, rolls, times, l = extract_attendance()
+    return render_template('home.html', names=names, rolls=rolls, times=times, l=l, totalreg=totalreg(), datetoday2=datetoday2)
+
+# def start():
+#     names, rolls, times, l = extract_attendance()
+#     if 'face_recognition_model.pkl' not in os.listdir('static'):
+#         return render_template('home.html', names=names, rolls=rolls, times=times, l=l, totalreg=totalreg(), mess = "There is no model Please add one")
+#     ret = True
+#     cap = cv2.VideoCapture(0)
+#     while ret:
+#         ret, frame = cap.read()
+#         if len(extract_faces(frame))>0:
+#             (x, y, w, h) = extract_faces(frame)[0]
+#             cv2.rectangle(frame, (x, y), (x+w, y+h), (86, 32, 251), 1)
+#             cv2.rectangle(frame, (x, y), (x+w, y-40), (86, 32, 251), -1)
+#             face = cv2.resize(frame[y:y+h, x:x+w], (50, 50))
+#             identified_person = identify_face(face.reshape(1, -1))[0]
+#             add_attendance(identified_person)
+#             cv2.putText(frame, f'{identified_person}', (x+5, y-5),
+#                         cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+#         cv2.imshow('Attendance', frame)
+#         if cv2.waitKey(1) == 27:
+#             break
+#     cap.release()
+#     cv2.destroyAllWindows()
+#     names, rolls, times, l = extract_attendance()
+#     return render_template('home.html', names=names, rolls=rolls, times=times, l=l, totalreg=totalreg(), datetoday2=datetoday2)
 @app.route("/add", methods=['GET', 'POST'])
 def add():
     names, rolls, times, l = extract_attendance()
@@ -91,13 +183,13 @@ def add():
             if j == nimgs*5:
                 break
             cv2.imshow('Adding new User', frame)
-            if cv2.waitKey(1) == 27:
-                break
+        if cv2.waitKey(1) == 27:
+            break
         cap.release()
         cv2.destroyAllWindows()
         print('Training Model')
-        # train_model()
-        # names, rolls, times, l = extract_attendance()
+        train_model()
+        names, rolls, times, l = extract_attendance()
         return render_template('home.html', names=names, rolls=rolls, times=times, l=l, totalreg=totalreg(), datetoday2=datetoday2)
 
     return "This is add page"
