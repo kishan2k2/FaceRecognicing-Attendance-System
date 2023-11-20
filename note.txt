@@ -1,7 +1,14 @@
 To create virtual enviorment-: virtualenv <name>; <name>/Scripts/activate
 
+ToDo's 
 
-How many images of a user should we require cause as of now it's only capturing one of the image but according to code it will take more.
+fix the home not loading? verify it first?
+    frame not being distroyed.
 
-Next to do-:
-    Handle the dynamic HTML loading.
+Host the project
+    with the notice that why you cannot add the user in hosted project.
+    Data might not be persistance but will it acessable when the session is active.
+
+add readme of how to use the project with a video as well.
+
+Finally write a blog about it.
